@@ -4,6 +4,11 @@
 
 Tired of clicking around complex file hierarchies of GitHub repos? Do you just want to see all of the code on a single page? Enter `rendergit`. Flatten any GitHub repository into a single, searchable HTML page with syntax highlighting, markdown rendering, and a clean sidebar navigation. Perfect for code review, exploration, and an instant Ctrl+F experience.
 
+## Use The Live App
+https://rendergit-app.vercel.app/
+
+App code at https://github.com/umarwaseeem/rendergit-app
+
 ## Basic usage
 
 Git clone / pip install this repo somewhere:
