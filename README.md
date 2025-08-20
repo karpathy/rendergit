@@ -14,7 +14,7 @@ cd rendergit
 pip install -e .
 ```
 
-Now you can just `rendergit` any GitHub URL e.g.:
+Now you can just `rendergit` any GitHub URL, e.g.:
 
 ```bash
 rendergit https://github.com/karpathy/nanoGPT
