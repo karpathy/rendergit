@@ -2,25 +2,9 @@
 """
 Flatten a GitHub repo into a single static HTML page for fast skimming and Ctrl+F.
 
-Features
-- Clones a repo URL to a temp dir
-- Renders every small text file into one giant HTML page
-  * Markdown files are rendered as HTML
-  * Code files are syntax-highlighted via Pygments
-  * Plaintext gets <pre><code>
-- Skips binaries and files over a size threshold (default: 50 KiB)
-- Lists skipped binaries / large files at the top
-- Includes repo metadata, counts, and a directory tree header
-
-Usage
-    python repo_to_single_page.py https://github.com/user/repo -o out.html
-
-Requirements
-    pip install pygments markdown
-
-Notes
-- Requires a working `git` in PATH.
-- If the `tree` command is unavailable, a Python fallback is used.
+Dark mode notes (what we changed):
+- We render with a dark UI by default using CSS variables and color-scheme hints.
+- We switch Pygments to a dark style ("monokai") and override its background so it blends with our dark code panel.
 """
 
 from __future__ import annotations
@@ -71,14 +55,17 @@ class FileInfo:
 
 
 def run(cmd: List[str], cwd: str | None = None, check: bool = True) -> subprocess.CompletedProcess:
+    # Helper to run shell commands and capture output
     return subprocess.run(cmd, cwd=cwd, check=check, text=True, capture_output=True)
 
 
 def git_clone(url: str, dst: str) -> None:
+    # Clones the repository to a destination folder
     run(["git", "clone", "--depth", "1", url, dst])
 
 
 def git_head_commit(repo_dir: str) -> str:
+    # Grabs the HEAD commit hash for display
     try:
         cp = run(["git", "rev-parse", "HEAD"], cwd=repo_dir)
         return cp.stdout.strip()
@@ -101,6 +88,7 @@ def bytes_human(n: int) -> str:
 
 
 def looks_binary(path: pathlib.Path) -> bool:
+    # Heuristic: decide if a file is binary by extension, null bytes, or decode failure
     ext = path.suffix.lower()
     if ext in BINARY_EXTENSIONS:
         return True
@@ -109,7 +97,6 @@ def looks_binary(path: pathlib.Path) -> bool:
             chunk = f.read(8192)
         if b"\x00" in chunk:
             return True
-        # Heuristic: try UTF-8 decode; if it hard-fails, likely binary
         try:
             chunk.decode("utf-8")
         except UnicodeDecodeError:
@@ -121,6 +108,7 @@ def looks_binary(path: pathlib.Path) -> bool:
 
 
 def decide_file(path: pathlib.Path, repo_root: pathlib.Path, max_bytes: int) -> FileInfo:
+    # Decide whether to include a file, and record why if not
     rel = str(path.relative_to(repo_root)).replace(os.sep, "/")
     try:
         size = path.stat().st_size
@@ -137,6 +125,7 @@ def decide_file(path: pathlib.Path, repo_root: pathlib.Path, max_bytes: int) -> 
 
 
 def collect_files(repo_root: pathlib.Path, max_bytes: int) -> List[FileInfo]:
+    # Walk the repo and collect candidate files with decisions
     infos: List[FileInfo] = []
     for p in sorted(repo_root.rglob("*")):
         if p.is_symlink():
@@ -168,6 +157,7 @@ def generate_tree_fallback(root: pathlib.Path) -> str:
 
 
 def try_tree_command(root: pathlib.Path) -> str:
+    # Use the real `tree` output if available; otherwise fall back to our Python version
     try:
         cp = run(["tree", "-a", "."], cwd=str(root))
         return cp.stdout
@@ -176,14 +166,17 @@ def try_tree_command(root: pathlib.Path) -> str:
 
 
 def read_text(path: pathlib.Path) -> str:
+    # Read text safely with UTF-8 and replacement for weird bytes
     return path.read_text(encoding="utf-8", errors="replace")
 
 
 def render_markdown_text(md_text: str) -> str:
+    # Convert Markdown into HTML with common extensions
     return markdown.markdown(md_text, extensions=["fenced_code", "tables", "toc"])  # type: ignore
 
 
 def highlight_code(text: str, filename: str, formatter: HtmlFormatter) -> str:
+    # Syntax-highlight code using Pygments
     try:
         lexer = get_lexer_for_filename(filename, stripall=False)
     except Exception:
@@ -192,7 +185,7 @@ def highlight_code(text: str, filename: str, formatter: HtmlFormatter) -> str:
 
 
 def slugify(path_str: str) -> str:
-    # Simple slug: keep alnum, dash, underscore; replace others with '-'
+    # Make a safe anchor id from a path
     out = []
     for ch in path_str:
         if ch.isalnum() or ch in {"-", "_"}:
@@ -226,23 +219,24 @@ def generate_cxml_text(infos: List[FileInfo], repo_dir: pathlib.Path) -> str:
 
 
 def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: List[FileInfo]) -> str:
-    formatter = HtmlFormatter(nowrap=False)
+    # Use a dark Pygments theme to match the page (monokai is widely available)
+    formatter = HtmlFormatter(nowrap=False, style="monokai")  # <-- dark theme for code
     pygments_css = formatter.get_style_defs('.highlight')
 
-    # Stats
+    # Stats for the header
     rendered = [i for i in infos if i.decision.include]
     skipped_binary = [i for i in infos if i.decision.reason == "binary"]
     skipped_large = [i for i in infos if i.decision.reason == "too_large"]
     skipped_ignored = [i for i in infos if i.decision.reason == "ignored"]
     total_files = len(rendered) + len(skipped_binary) + len(skipped_large) + len(skipped_ignored)
 
-    # Directory tree
+    # Directory tree text (either real `tree` or Python fallback)
     tree_text = try_tree_command(repo_dir)
     
-    # Generate CXML text for LLM view
+    # CXML text for the LLM view
     cxml_text = generate_cxml_text(infos, repo_dir)
 
-    # Table of contents
+    # Build a simple TOC list
     toc_items: List[str] = []
     for i in rendered:
         anchor = slugify(i.rel)
@@ -252,7 +246,7 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
         )
     toc_html = "".join(toc_items)
 
-    # Render file sections
+    # Render each file section (Markdown -> HTML, everything else -> highlighted code)
     sections: List[str] = []
     for i in rendered:
         anchor = slugify(i.rel)
@@ -275,7 +269,7 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
 </section>
 """)
 
-    # Skips lists
+    # Helper to render lists of skipped items
     def render_skip_list(title: str, items: List[FileInfo]) -> str:
         if not items:
             return ""
@@ -294,50 +288,81 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
         render_skip_list("Skipped large files", skipped_large)
     )
 
-    # HTML with left sidebar TOC
+    # Build final HTML with a dark theme
     return f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Tell browsers our UI is dark so scrollbars/inputs match -->
+<meta name="color-scheme" content="dark" />
 <title>Flattened repo – {html.escape(repo_url)}</title>
 <style>
+  /* =======================
+     Dark Theme Tokens
+     (one place to tweak)
+     ======================= */
+  :root {{
+    --bg: #0d1117;           /* page background */
+    --panel: #0f141b;        /* cards/panels background */
+    --text: #e6edf3;         /* primary text */
+    --muted: #9aa7b3;        /* secondary text */
+    --border: #30363d;       /* subtle borders */
+    --accent: #58a6ff;       /* link / accent */
+    --accent-hover: #79c0ff; /* link hover */
+    --code-bg: #161b22;      /* code blocks, pre, sidebar */
+  }}
+
+  /* ===== Base layout & typography (dark) ===== */
   body {{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
-    margin: 0; padding: 0; line-height: 1.45;
+    margin: 0; padding: 0; line-height: 1.5;
+    background: var(--bg);           /* dark background */
+    color: var(--text);              /* readable light text */
   }}
   .container {{ max-width: 1100px; margin: 0 auto; padding: 0 1rem; }}
-  .meta small {{ color: #666; }}
-  .counts {{ margin-top: 0.25rem; color: #333; }}
-  .muted {{ color: #777; font-weight: normal; font-size: 0.9em; }}
 
-  /* Layout with sidebar */
+  .meta small {{ color: var(--muted); }}
+  .counts {{ margin-top: 0.25rem; color: var(--muted); }}
+  .muted {{ color: var(--muted); font-weight: normal; font-size: 0.9em; }}
+
+  /* ===== Two-column layout with sticky sidebar ===== */
   .page {{ display: grid; grid-template-columns: 320px minmax(0,1fr); gap: 0; }}
   #sidebar {{
     position: sticky; top: 0; align-self: start;
     height: 100vh; overflow: auto;
-    border-right: 1px solid #eee; background: #fafbfc;
+    border-right: 1px solid var(--border);
+    background: var(--code-bg);      /* darker panel for sidebar */
   }}
   #sidebar .sidebar-inner {{ padding: 0.75rem; }}
-  #sidebar h2 {{ margin: 0 0 0.5rem 0; font-size: 1rem; }}
+  #sidebar h2 {{ margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--text); }}
 
   .toc {{ list-style: none; padding-left: 0; margin: 0; overflow-x: auto; }}
   .toc li {{ padding: 0.15rem 0; white-space: nowrap; }}
-  .toc a {{ text-decoration: none; color: #0366d6; display: inline-block; text-decoration: none; }}
-  .toc a:hover {{ text-decoration: underline; }}
+  .toc a {{ text-decoration: none; color: var(--accent); display: inline-block; }}
+  .toc a:hover {{ text-decoration: underline; color: var(--accent-hover); }}
 
   main.container {{ padding-top: 1rem; }}
 
-  pre {{ background: #f6f8fa; padding: 0.75rem; overflow: auto; border-radius: 6px; }}
+  /* ===== Code & pre blocks fit the dark theme ===== */
+  pre {{
+    background: var(--code-bg);
+    padding: 0.75rem; overflow: auto; border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }}
   code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace; }}
-  .highlight {{ overflow-x: auto; }}
-  .file-section {{ padding: 1rem; border-top: 1px solid #eee; }}
-  .file-section h2 {{ margin: 0 0 0.5rem 0; font-size: 1.1rem; }}
+
+  .highlight {{ overflow-x: auto; background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; }}
+  .file-section {{ padding: 1rem; border-top: 1px solid var(--border); background: transparent; }}
+  .file-section h2 {{ margin: 0 0 0.5rem 0; font-size: 1.1rem; color: var(--text); }}
   .file-body {{ margin-bottom: 0.5rem; }}
-  .back-top {{ font-size: 0.9rem; }}
-  .skip-list code {{ background: #f6f8fa; padding: 0.1rem 0.3rem; border-radius: 4px; }}
-  .error {{ color: #b00020; background: #fff3f3; }}
+  .back-top a {{ color: var(--accent); }}
+  .back-top a:hover {{ color: var(--accent-hover); }}
+
+  .skip-list code {{ background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 4px; border: 1px solid var(--border); color: var(--text); }}
+  .error {{ color: #ffb4b4; background: #2a0f12; border: 1px solid #5a1a1a; padding: 0.5rem; border-radius: 6px; }}
 
   /* Hide duplicate top TOC on wide screens */
   .toc-top {{ display: block; }}
@@ -345,7 +370,7 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
 
   :target {{ scroll-margin-top: 8px; }}
 
-  /* View toggle */
+  /* ===== View toggle buttons styled for dark ===== */
   .view-toggle {{ 
     margin: 1rem 0; 
     display: flex; 
@@ -354,41 +379,49 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
   }}
   .toggle-btn {{ 
     padding: 0.5rem 1rem; 
-    border: 1px solid #d1d9e0; 
-    background: white; 
+    border: 1px solid var(--border); 
+    background: var(--panel); 
     cursor: pointer; 
     border-radius: 6px;
     font-size: 0.9rem;
+    color: var(--text);
   }}
   .toggle-btn.active {{ 
-    background: #0366d6; 
-    color: white; 
-    border-color: #0366d6; 
+    background: var(--accent); 
+    color: #0b1020; 
+    border-color: var(--accent); 
   }}
   .toggle-btn:hover:not(.active) {{ 
-    background: #f6f8fa; 
+    background: #0e1520; 
   }}
   
-  /* LLM view */
+  /* ===== LLM view textarea matches dark UI ===== */
   #llm-view {{ display: none; }}
   #llm-text {{ 
     width: 100%; 
     height: 70vh; 
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 0.85em;
-    border: 1px solid #d1d9e0;
+    border: 1px solid var(--border);
     border-radius: 6px;
     padding: 1rem;
     resize: vertical;
+    background: var(--code-bg);
+    color: var(--text);
   }}
   .copy-hint {{ 
     margin-top: 0.5rem; 
-    color: #666; 
+    color: var(--muted); 
     font-size: 0.9em; 
   }}
 
-  /* Pygments */
+  /* ===== Pygments (monokai) =====
+     We include Pygments CSS and then override backgrounds to our --code-bg
+     so the theme integrates cleanly with the site. */
   {pygments_css}
+
+  /* ===== Pygments overrides for dark site ===== */
+  .highlight, .highlight pre {{ background: var(--code-bg) !important; }}
 </style>
 </head>
 <body>
@@ -407,7 +440,7 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
 
     <section>
         <div class="meta">
-        <div><strong>Repository:</strong> <a href="{html.escape(repo_url)}">{html.escape(repo_url)}</a></div>
+        <div><strong>Repository:</strong> <a href="{html.escape(repo_url)}" style="color: var(--accent)">{html.escape(repo_url)}</a></div>
         <small><strong>HEAD commit:</strong> {html.escape(head_commit)}</small>
         <div class="counts">
             <strong>Total files:</strong> {total_files} · <strong>Rendered:</strong> {len(rendered)} · <strong>Skipped:</strong> {len(skipped_binary) + len(skipped_large) + len(skipped_ignored)}
@@ -454,6 +487,7 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
 </div>
 
 <script>
+/* Small helpers to toggle between Human and LLM views */
 function showHumanView() {{
   document.getElementById('human-view').style.display = 'block';
   document.getElementById('llm-view').style.display = 'none';
@@ -482,7 +516,7 @@ function showLLMView() {{
 
 def derive_temp_output_path(repo_url: str) -> pathlib.Path:
     """Derive a temporary output path from the repo URL."""
-    # Extract repo name from URL like https://github.com/owner/repo or https://github.com/owner/repo.git
+    # Extract repo name for a friendly default filename
     parts = repo_url.rstrip('/').split('/')
     if len(parts) >= 2:
         repo_name = parts[-1]
@@ -496,6 +530,7 @@ def derive_temp_output_path(repo_url: str) -> pathlib.Path:
 
 
 def main() -> int:
+    # CLI argument parsing and main flow
     ap = argparse.ArgumentParser(description="Flatten a GitHub repo to a single HTML page")
     ap.add_argument("repo_url", help="GitHub repo URL (https://github.com/owner/repo[.git])")
     ap.add_argument("-o", "--out", help="Output HTML file path (default: temporary file derived from repo name)")
