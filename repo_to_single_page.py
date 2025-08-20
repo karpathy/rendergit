@@ -149,7 +149,6 @@ def collect_files(repo_root: pathlib.Path, max_bytes: int) -> List[FileInfo]:
 def generate_tree_fallback(root: pathlib.Path) -> str:
     """Minimal tree-like output if `tree` command is missing."""
     lines: List[str] = []
-    prefix_stack: List[str] = []
 
     def walk(dir_path: pathlib.Path, prefix: str = ""):
         entries = [e for e in dir_path.iterdir() if e.name != ".git"]
