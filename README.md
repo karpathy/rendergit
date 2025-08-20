@@ -43,6 +43,21 @@ There's a few other smaller options, see the code.
 - **Responsive design** that works on mobile
 - **Search-friendly** - use Ctrl+F to find anything across all files
 
+## Linux installation notes
+
+Recent versions of Ubuntu (23.04+), Linux Mint (21.2+), and Debian (12+) follow [PEP 668](https://peps.python.org/pep-0668/), which blocks system-wide `pip install` to protect system packages.
+
+To install `rendergit` safely, use a virtual environment:
+
+```bash
+sudo apt install python3.12-venv -y   # install venv support
+git clone https://github.com/karpathy/rendergit
+cd rendergit
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
 ## Contributing
 
 I vibe coded this utility a few months ago but I keep using it very often so I figured I'd just share it. I don't super intend to maintain or support it though.
