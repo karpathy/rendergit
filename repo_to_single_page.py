@@ -33,6 +33,7 @@ import subprocess
 import sys
 import tempfile
 import webbrowser
+from collections import defaultdict, Counter
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -225,6 +226,382 @@ def generate_cxml_text(infos: List[FileInfo], repo_dir: pathlib.Path) -> str:
     return "\n".join(lines)
 
 
+def generate_advanced_stats(infos: List[FileInfo]) -> str:
+    """Generate detailed repository statistics."""
+    rendered = [i for i in infos if i.decision.include]
+    
+    # File type analysis
+    ext_stats = Counter()
+    lang_stats = defaultdict(lambda: {'count': 0, 'size': 0})
+    
+    for file_info in rendered:
+        ext = pathlib.Path(file_info.rel).suffix.lower() or 'no-extension'
+        ext_stats[ext] += 1
+        
+        # Language categorization
+        lang = 'Other'
+        if ext in {'.py', '.pyw'}: lang = 'Python'
+        elif ext in {'.js', '.jsx', '.ts', '.tsx'}: lang = 'JavaScript/TypeScript'
+        elif ext in {'.html', '.htm'}: lang = 'HTML'
+        elif ext in {'.css', '.scss', '.sass', '.less'}: lang = 'CSS'
+        elif ext in {'.java'}: lang = 'Java'
+        elif ext in {'.cpp', '.cc', '.cxx', '.c', '.h', '.hpp'}: lang = 'C/C++'
+        elif ext in {'.rs'}: lang = 'Rust'
+        elif ext in {'.go'}: lang = 'Go'
+        elif ext in {'.php'}: lang = 'PHP'
+        elif ext in {'.rb'}: lang = 'Ruby'
+        elif ext in {'.swift'}: lang = 'Swift'
+        elif ext in {'.kt', '.kts'}: lang = 'Kotlin'
+        elif ext in MARKDOWN_EXTENSIONS: lang = 'Markdown'
+        elif ext in {'.json', '.yaml', '.yml', '.toml', '.xml'}: lang = 'Config/Data'
+        elif ext in {'.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd'}: lang = 'Shell Scripts'
+        
+        lang_stats[lang]['count'] += 1
+        lang_stats[lang]['size'] += file_info.size
+    
+    # Directory depth analysis
+    depth_stats = Counter()
+    for file_info in rendered:
+        depth = len(file_info.rel.split('/')) - 1
+        depth_stats[depth] += 1
+    
+    # Size analysis
+    total_size = sum(f.size for f in rendered)
+    avg_size = total_size / len(rendered) if rendered else 0
+    
+    # Generate HTML
+    stats_html = f"""
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 1.5rem 0;">
+      <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1.5rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+        <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem;">📊 Size Analysis</h3>
+        <div>Total Size: <strong>{bytes_human(total_size)}</strong></div>
+        <div>Average File Size: <strong>{bytes_human(int(avg_size))}</strong></div>
+        <div>Largest File: <strong>{bytes_human(max((f.size for f in rendered), default=0))}</strong></div>
+      </div>
+      
+      <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+        <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem;">🗂️ Directory Structure</h3>
+        <div>Max Depth: <strong>{max(depth_stats.keys(), default=0)} levels</strong></div>
+        <div>Root Files: <strong>{depth_stats.get(0, 0)}</strong></div>
+        <div>Nested Files: <strong>{sum(count for depth, count in depth_stats.items() if depth > 0)}</strong></div>
+      </div>
+    </div>
+    
+    <div class="stats-charts" style="margin: 1.5rem 0;">
+      <div style="background: white; padding: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 1rem 0;">🔤 Languages & File Types</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+          {''.join(f'''
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); border-left: 4px solid var(--text-accent);">
+              <div style="font-weight: 600; color: var(--text-primary);">{lang}</div>
+              <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                {stats["count"]} files • {bytes_human(stats["size"])}
+              </div>
+            </div>
+          ''' for lang, stats in sorted(lang_stats.items(), key=lambda x: x[1]["count"], reverse=True)[:8])}
+        </div>
+      </div>
+      
+      <div style="background: white; padding: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);">
+        <h3 style="margin: 0 0 1rem 0;">📂 Top File Extensions</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem;">
+          {''.join(f'''
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm);">
+              <code style="font-weight: 600;">{ext}</code>
+              <span style="color: var(--text-secondary); font-size: 0.9rem;">{count}</span>
+            </div>
+          ''' for ext, count in ext_stats.most_common(12))}
+        </div>
+      </div>
+    </div>
+    """
+    
+    return stats_html
+
+
+def add_pwa_features() -> str:
+    """Add PWA manifest and service worker inline."""
+    return '''
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIlJlcG9zaXRvcnkgRXhwbG9yZXIiLCAic2hvcnRfbmFtZSI6ICJSZXBvRXhwbG9yZXIiLCAiaWNvbnMiOiBbeyJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNGJXeHVjejBpYUhSMGNEb3ZMM2QzZHk1M015NXZjbWN2TWpBd01DOXpkbWNpSUhacFpYZENiM2c5SWpBZ01DQXhNekFnTVRNd0lpQjNhV1IwYUQwaU1UTXdJaUJvWldsbmFIUTlJakV6TUNJOGMzUjViR1UrSUc1aGJXVTlJbU52Y0dGamFYUjVJaUJtYVd4c1BTSWpaRFl5TWpZaU1DQXdJREFnTVRNd0lpQXpNREF4TXpBdUlHOWphVEExTGpRaUlITjBhWEpyWlMxM2FXUjBhRDBpTXlJZ2MzUnliMnRsUFNKdFlUWTJMakE1WkdGaE56VmlOelExWWpZNFlqZGtOVEU0T0dVd05EQXlNRGswTVdFeFl6aGtNVGsxWXpJMk5ESmhOemM0SW1GdWFXMWhkR2x2Ym5NOUlsZHpZV2RrUVU1cGJXRjBhVzl1Y3lJK1BIVnpaUzE0YkdsdVF6cGhibWx0WVhScGIyNGdZWFJ5YVdKMWRHVk9ZVzFsUFNKamIzQmhZMmwwZVNJZ1ltVjBkMlZsYmlBd2N6WnFhVzRnWm1sc2JERkdaVE4xT25CaGJHVnpjems0ZDBsb1FqSXhRVzVxY0ROSVBDOWtiR1UyUjNSNlMzbGtZV0YzVldKaFpYUXJZV052WWpCb2JXSXlOM0Z1Wm1OM2FYUXRjbWxyYWxaa1oyRnJaek1nVGxSV2FXRndkV1ZsVjJseFVtNTJhbU13YUhOcGNqTm5RM2RwWjNkaVpWVjNZUzlxU1VSSmVFc25hR2R0YURJdE5EQk5hM1Z1Ym5aOVpuVlBZejE0TlRVelJYVkthR2xoT25scGJGc3lXa3RJVWs1aWFtcDBTVXB2YUVWYWN5Sm1sblFtdFhRZUp3WU5Va1M0VDJwb09OSm1PdkYyNlZnQ3lsWUZrS05XaXcxRGNkOTN2QT0iLCAic2l6ZXMiOiAiMTMweDEzMCIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwifV0sICJ0aGVtZV9jb2xvciI6ICIjNjY3ZWVhIiwgImJhY2tncm91bmRfY29sb3IiOiAiI2Y4ZmFmYyIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUifQ==">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Repository Explorer">
+    
+    <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('data:text/javascript;base64,' + btoa(`
+        const CACHE_NAME = 'repo-explorer-v1';
+        const urlsToCache = ['/'];
+        
+        self.addEventListener('install', event => {
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+          );
+        });
+        
+        self.addEventListener('fetch', event => {
+          event.respondWith(
+            caches.match(event.request).then(response => {
+              return response || fetch(event.request);
+            })
+          );
+        });
+      `));
+    }
+    </script>
+    '''
+
+
+def add_export_features() -> str:
+    """Add export functionality."""
+    return '''
+    <!-- Export Controls -->
+    <div class="export-controls" style="margin: 1rem 0; padding: 1rem; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+      <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem;">📤 Export & Share</h3>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button onclick="exportToPDF()" class="export-btn">📄 Export PDF</button>
+        <button onclick="copyShareableLink()" class="export-btn">🔗 Copy Link</button>
+        <button onclick="downloadHTML()" class="export-btn">💾 Download HTML</button>
+        <button onclick="generateQR()" class="export-btn">📱 QR Code</button>
+      </div>
+    </div>
+    '''
+
+
+def add_interactive_features() -> str:
+    """Add interactive JavaScript features."""
+    return '''
+    <script>
+    // Advanced search functionality
+    function initSearchFeatures() {
+      // Add search box to sidebar
+      const sidebar = document.getElementById('sidebar');
+      const sidebarInner = sidebar.querySelector('.sidebar-inner');
+      
+      const searchHTML = `
+        <div class="search-container" style="margin-bottom: 1.5rem;">
+          <div class="search-box">
+            <input type="text" id="file-search" placeholder="🔍 Search files..." 
+                   style="width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border-light); 
+                          border-radius: var(--radius-md); font-size: 0.9rem; background: white;
+                          transition: all 0.2s ease;">
+            <div id="search-results" style="margin-top: 0.5rem; display: none;"></div>
+          </div>
+          <div class="search-stats" style="font-size: 0.8rem; color: var(--text-tertiary); 
+                                         margin-top: 0.5rem; text-align: center;"></div>
+        </div>`;
+      
+      sidebarInner.insertAdjacentHTML('afterbegin', searchHTML);
+      
+      const searchInput = document.getElementById('file-search');
+      const searchResults = document.getElementById('search-results');
+      const searchStats = document.querySelector('.search-stats');
+      const allFiles = Array.from(document.querySelectorAll('.toc-file a'));
+      
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        
+        if (query.length < 2) {
+          searchResults.style.display = 'none';
+          resetFileVisibility();
+          searchStats.textContent = '';
+          return;
+        }
+        
+        const matches = allFiles.filter(link => {
+          const filename = link.textContent.toLowerCase();
+          return filename.includes(query);
+        });
+        
+        // Show/hide files in TOC based on search
+        allFiles.forEach(link => {
+          const listItem = link.closest('.toc-file');
+          if (matches.includes(link)) {
+            listItem.style.display = 'list-item';
+            // Highlight matching text
+            const text = link.innerHTML;
+            const regex = new RegExp(`(${query})`, 'gi');
+            link.innerHTML = text.replace(regex, '<mark style="background: yellow; padding: 0.1em;">$1</mark>');
+          } else {
+            listItem.style.display = 'none';
+          }
+        });
+        
+        searchStats.textContent = `${matches.length} file(s) match "${query}"`;
+        
+        if (matches.length === 0) {
+          searchResults.innerHTML = '<div style="padding: 0.5rem; color: var(--text-tertiary); font-style: italic;">No matching files found</div>';
+          searchResults.style.display = 'block';
+        } else {
+          searchResults.style.display = 'none';
+        }
+      });
+      
+      function resetFileVisibility() {
+        allFiles.forEach(link => {
+          link.closest('.toc-file').style.display = 'list-item';
+          // Remove highlighting
+          const text = link.textContent;
+          link.innerHTML = link.innerHTML.replace(/<mark[^>]*>([^<]*)<\\/mark>/gi, '$1');
+        });
+      }
+    }
+
+    // Add breadcrumb navigation
+    function addBreadcrumbs() {
+      document.querySelectorAll('.file-section h2').forEach(header => {
+        const filePath = header.textContent.split('(')[0].trim();
+        const pathParts = filePath.split('/');
+        
+        if (pathParts.length > 1) {
+          const breadcrumb = document.createElement('div');
+          breadcrumb.className = 'breadcrumb';
+          breadcrumb.style.cssText = `
+            font-size: 0.85rem; color: var(--text-tertiary); margin-bottom: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+          `;
+          
+          breadcrumb.innerHTML = pathParts.map((part, index) => {
+            if (index === pathParts.length - 1) {
+              return `<span style="color: var(--text-primary); font-weight: 600;">${part}</span>`;
+            } else {
+              return `<span>${part}</span>`;
+            }
+          }).join(' <span style="color: var(--text-tertiary);">→</span> ');
+          
+          header.parentNode.insertBefore(breadcrumb, header);
+        }
+      });
+    }
+
+    // Add line numbers
+    function addLineNumbers() {
+      document.querySelectorAll('.highlight pre').forEach(pre => {
+        const code = pre.textContent;
+        const lines = code.split('\\n');
+        const lineNumbers = lines.map((_, i) => i + 1).join('\\n');
+        
+        const lineNumbersEl = document.createElement('div');
+        lineNumbersEl.style.cssText = `
+          position: absolute; left: 0; top: 0; bottom: 0; width: 3rem;
+          background: rgba(0,0,0,0.1); border-right: 1px solid rgba(255,255,255,0.1);
+          font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+          color: rgba(255,255,255,0.5); text-align: right; padding: 1.5rem 0.5rem;
+          line-height: 1.5; user-select: none; white-space: pre;
+        `;
+        lineNumbersEl.textContent = lineNumbers;
+        
+        pre.parentElement.style.position = 'relative';
+        pre.style.paddingLeft = '4rem';
+        pre.parentElement.insertBefore(lineNumbersEl, pre);
+      });
+    }
+
+    // File content analysis
+    function addContentAnalysis() {
+      document.querySelectorAll('.file-section').forEach(section => {
+        const codeBlock = section.querySelector('.highlight, .markdown-content');
+        if (!codeBlock) return;
+        
+        const content = codeBlock.textContent || '';
+        const lines = content.split('\\n').length;
+        const words = content.split(/\\s+/).length;
+        const chars = content.length;
+        
+        const analysisEl = document.createElement('div');
+        analysisEl.className = 'content-analysis';
+        analysisEl.style.cssText = `
+          background: var(--bg-tertiary); padding: 0.75rem 1rem; 
+          border-radius: var(--radius-sm); margin-bottom: 1rem;
+          font-size: 0.85rem; color: var(--text-secondary);
+          display: flex; gap: 1rem; flex-wrap: wrap;
+        `;
+        
+        analysisEl.innerHTML = `
+          <span>📏 <strong>${lines}</strong> lines</span>
+          <span>📝 <strong>${words}</strong> words</span>
+          <span>🔤 <strong>${chars.toLocaleString()}</strong> chars</span>
+          <span>⏱️ ~<strong>${Math.ceil(words / 200)}</strong> min read</span>
+        `;
+        
+        const fileBody = section.querySelector('.file-body');
+        fileBody.insertBefore(analysisEl, fileBody.firstChild);
+      });
+    }
+
+    // Export functions
+    function exportToPDF() {
+      // Simple PDF export using browser print
+      const originalTitle = document.title;
+      document.title = 'Repository Export - ' + originalTitle;
+      window.print();
+      document.title = originalTitle;
+    }
+    
+    function copyShareableLink() {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        showToast('✅ Link copied to clipboard!');
+      });
+    }
+    
+    function downloadHTML() {
+      const htmlContent = document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'repository-export.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    
+    function generateQR() {
+      // Simple QR code generation using online service
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(window.location.href)}`;
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8);
+        display: flex; align-items: center; justify-content: center; z-index: 10000;
+      `;
+      modal.innerHTML = `
+        <div style="background: white; padding: 2rem; border-radius: var(--radius-lg); text-align: center;">
+          <h3>📱 QR Code for this page</h3>
+          <img src="${qrUrl}" alt="QR Code" style="margin: 1rem 0;"/>
+          <br><button onclick="this.parentElement.parentElement.remove()" 
+                     style="padding: 0.5rem 1rem; background: var(--primary-gradient); color: white; border: none; border-radius: var(--radius-sm);">Close</button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.textContent = message;
+      toast.style.cssText = `
+        position: fixed; top: 2rem; right: 2rem; background: var(--success-gradient);
+        color: white; padding: 1rem 1.5rem; border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg); z-index: 10000; animation: slideIn 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Initialize all interactive features
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        addLineNumbers();
+        addContentAnalysis();
+        initSearchFeatures();
+        addBreadcrumbs();
+      }, 500);
+    });
+    </script>
+    '''
+
+
 def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: List[FileInfo]) -> str:
     formatter = HtmlFormatter(nowrap=False)
     pygments_css = formatter.get_style_defs('.highlight')
@@ -241,6 +618,14 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
     
     # Generate CXML text for LLM view
     cxml_text = generate_cxml_text(infos, repo_dir)
+    
+    # Generate advanced stats
+    advanced_stats_html = generate_advanced_stats(infos)
+    
+    # Get additional features
+    pwa_features = add_pwa_features()
+    export_features = add_export_features()
+    interactive_features = add_interactive_features()
 
     # Table of contents with directory tree structure
     toc_items: List[str] = []
@@ -397,7 +782,11 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
         
         sections.append(f"""
 <section class="file-section" id="file-{anchor}">
-  <h2 data-icon="{file_icon}">{html.escape(i.rel)} <span class="muted">({bytes_human(i.size)})</span></h2>
+  <h2 data-icon="{file_icon}">
+    <div class="file-header-left">
+      <span>{html.escape(i.rel)} <span class="muted">({bytes_human(i.size)})</span></span>
+    </div>
+  </h2>
   <div class="file-body">{body_html}</div>
   <div class="back-top"><a href="#top">↑ Back to top</a></div>
 </section>
@@ -430,6 +819,7 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>📚 {html.escape(repo_url)} - Code Repository</title>
+{pwa_features}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
@@ -923,8 +1313,34 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
     border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 1rem;
     position: relative;
+  }}
+
+  .file-header-left {{
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+  }}
+
+  /* Copy button will be positioned absolutely on the right */
+  .copy-code-btn {{
+    position: absolute;
+    right: 2rem;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    opacity: 1;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    flex-shrink: 0;
   }}
 
   .file-section h2::before {{
@@ -1079,35 +1495,6 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
-  }}
-
-  /* Copy button styling */
-  .copy-code-btn {{
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: var(--primary-gradient);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    opacity: 0;
-    transition: all 0.2s ease;
-    z-index: 10;
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-  }}
-
-  .file-body:hover .copy-code-btn {{
-    opacity: 1;
-  }}
-
-  .copy-code-btn:hover {{
-    opacity: 1 !important;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
   }}
 
   /* Responsive design */
@@ -1396,6 +1783,22 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
   /* Custom pygments styling */
   {pygments_css}
   
+  /* Export button styles */
+  .export-btn {{
+    padding: 0.75rem 1rem; background: var(--primary-gradient); color: white;
+    border: none; border-radius: var(--radius-sm); font-size: 0.9rem;
+    cursor: pointer; transition: all 0.2s ease;
+  }}
+  .export-btn:hover {{
+    transform: translateY(-1px); box-shadow: var(--shadow-md);
+  }}
+  
+  /* Animation for toasts */
+  @keyframes slideIn {{
+    from {{ transform: translateX(100%); opacity: 0; }}
+    to {{ transform: translateX(0); opacity: 1; }}
+  }}
+  
   /* Markdown content styling */
   .markdown-content {{
     font-size: 1rem;
@@ -1535,6 +1938,8 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
       </div>
     </div>
 
+    {advanced_stats_html}
+
     <div class="view-toggle">
       <strong>View Mode:</strong>
       <button class="toggle-btn active" onclick="showHumanView(this)"><span>👤 Human Readable</span></button>
@@ -1551,6 +1956,8 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
         <h2>📋 File Index ({len(rendered)} files)</h2>
         <ul class="toc">{toc_html}</ul>
       </div>
+
+      {export_features}
 
       <div class="content-section skip-section">
         <h2>⚠️ Excluded Files</h2>
@@ -1757,10 +2164,9 @@ document.addEventListener('DOMContentLoaded', function() {{
     copyBtn.textContent = '📋 Copy';
     copyBtn.className = 'copy-code-btn';
     
-    const fileBody = fileSection.querySelector('.file-body');
-    if (fileBody && codeBlock) {{
-      fileBody.style.position = 'relative';
-      fileBody.appendChild(copyBtn);
+    const header = fileSection.querySelector('h2');
+    if (header && codeBlock) {{
+      header.appendChild(copyBtn);
       
       copyBtn.addEventListener('click', (e) => {{
         e.preventDefault();
@@ -1838,6 +2244,8 @@ document.addEventListener('keydown', function(e) {{
   }}
 }});
 </script>
+
+{interactive_features}
 </body>
 </html>
 """
