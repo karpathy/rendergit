@@ -324,51 +324,51 @@ def index():
                 color: #58a6ff;
             }}
             .info {{
-                max-width: 700px;
-                margin: 40px auto;
-                color: #8b949e;
-                padding: 25px;
+                max-width: 600px;
+                margin: 30px auto;
+                padding: 15px;
                 background: #161b22;
                 border-radius: 8px;
             }}
-            .info h3 {{
-                text-align: center;
-            }}
-            .usage-section {{
-                margin: 20px 0;
-            }}
-            .usage-section p {{
-                margin: 8px 0;
-            }}
-            .code-block {{
+            .usage-row {{
                 display: flex;
                 align-items: center;
-                gap: 10px;
-                background: #0d1117;
-                padding: 10px;
-                border-radius: 6px;
+                gap: 12px;
                 margin: 10px 0;
+            }}
+            .usage-label {{
+                color: #8b949e;
+                font-size: 14px;
+                min-width: 60px;
+            }}
+            .code-block {{
+                flex: 1;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: #0d1117;
+                padding: 8px 12px;
+                border-radius: 6px;
             }}
             .code-block code {{
                 flex: 1;
                 font-family: monospace;
                 color: #79c0ff;
-                font-size: 14px;
-                word-break: break-all;
+                font-size: 13px;
             }}
             .copy-btn {{
-                padding: 6px 12px;
-                background: #21262d;
+                padding: 4px 8px;
+                background: transparent;
                 border: 1px solid #30363d;
-                color: #c9d1d9;
+                color: #8b949e;
                 border-radius: 4px;
                 cursor: pointer;
-                font-size: 12px;
-                white-space: nowrap;
+                font-size: 16px;
+                line-height: 1;
                 transition: all 0.2s;
             }}
             .copy-btn:hover {{
-                background: #30363d;
+                background: #21262d;
                 border-color: #58a6ff;
             }}
             .copy-btn.copied {{
@@ -405,28 +405,19 @@ def index():
             </div>
             
             <div class="info">
-                <h3 style="color: #58a6ff; margin-bottom: 15px;">How to Use</h3>
-                
-                <div class="usage-section">
-                    <p><strong>🌐 Web Version</strong></p>
-                    <p>Just replace user/repo with any GitHub repository:</p>
+                <div class="usage-row">
+                    <span class="usage-label">🌐 Web</span>
                     <div class="code-block">
-                        <code id="web-example">{request.host_url}github.com/karpathy/nanoGPT</code>
-                        <button class="copy-btn" onclick="copyToClipboard('web-example')">📋 Copy</button>
+                        <code id="web-example">{request.host_url}github.com/user/repo</code>
+                        <button class="copy-btn" onclick="copyToClipboard('web-example')">📋</button>
                     </div>
                 </div>
                 
-                <div class="usage-section">
-                    <p><strong>💻 CLI Version</strong></p>
-                    <p>Install once:</p>
+                <div class="usage-row">
+                    <span class="usage-label">💻 CLI</span>
                     <div class="code-block">
                         <code id="pip-install">pip install rendergit</code>
-                        <button class="copy-btn" onclick="copyToClipboard('pip-install')">📋 Copy</button>
-                    </div>
-                    <p>Then use anywhere:</p>
-                    <div class="code-block">
-                        <code id="cli-example">rendergit https://github.com/karpathy/nanoGPT</code>
-                        <button class="copy-btn" onclick="copyToClipboard('cli-example')">📋 Copy</button>
+                        <button class="copy-btn" onclick="copyToClipboard('pip-install')">📋</button>
                     </div>
                 </div>
             </div>
@@ -445,16 +436,14 @@ def index():
         function copyToClipboard(elementId) {{
             const text = document.getElementById(elementId).textContent;
             navigator.clipboard.writeText(text).then(() => {{
-                // Find the button that was clicked
                 const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = '✓ Copied!';
+                btn.textContent = '✓';
                 btn.classList.add('copied');
                 
                 setTimeout(() => {{
-                    btn.textContent = originalText;
+                    btn.textContent = '📋';
                     btn.classList.remove('copied');
-                }}, 2000);
+                }}, 1500);
             }}).catch(err => {{
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
@@ -465,14 +454,13 @@ def index():
                 document.body.removeChild(textArea);
                 
                 const btn = event.target;
-                const originalText = btn.textContent;
-                btn.textContent = '✓ Copied!';
+                btn.textContent = '✓';
                 btn.classList.add('copied');
                 
                 setTimeout(() => {{
-                    btn.textContent = originalText;
+                    btn.textContent = '📋';
                     btn.classList.remove('copied');
-                }}, 2000);
+                }}, 1500);
             }});
         }}
         </script>
