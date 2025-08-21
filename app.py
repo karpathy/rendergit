@@ -324,20 +324,56 @@ def index():
                 color: #58a6ff;
             }}
             .info {{
-                max-width: 600px;
+                max-width: 700px;
                 margin: 40px auto;
-                text-align: center;
                 color: #8b949e;
-                padding: 20px;
+                padding: 25px;
                 background: #161b22;
                 border-radius: 8px;
             }}
-            code {{
+            .info h3 {{
+                text-align: center;
+            }}
+            .usage-section {{
+                margin: 20px 0;
+            }}
+            .usage-section p {{
+                margin: 8px 0;
+            }}
+            .code-block {{
+                display: flex;
+                align-items: center;
+                gap: 10px;
                 background: #0d1117;
-                padding: 4px 8px;
-                border-radius: 3px;
-                font-size: 0.9em;
+                padding: 10px;
+                border-radius: 6px;
+                margin: 10px 0;
+            }}
+            .code-block code {{
+                flex: 1;
+                font-family: monospace;
+                color: #79c0ff;
+                font-size: 14px;
                 word-break: break-all;
+            }}
+            .copy-btn {{
+                padding: 6px 12px;
+                background: #21262d;
+                border: 1px solid #30363d;
+                color: #c9d1d9;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                white-space: nowrap;
+                transition: all 0.2s;
+            }}
+            .copy-btn:hover {{
+                background: #30363d;
+                border-color: #58a6ff;
+            }}
+            .copy-btn.copied {{
+                background: #238636;
+                border-color: #238636;
             }}
             @media (max-width: 640px) {{
                 .input-group {{
@@ -369,8 +405,30 @@ def index():
             </div>
             
             <div class="info">
-                <p>Direct URL: <code>{request.host_url}github.com/user/repo</code></p>
-                <p>Install locally: <code>pip install rendergit</code></p>
+                <h3 style="color: #58a6ff; margin-bottom: 15px;">How to Use</h3>
+                
+                <div class="usage-section">
+                    <p><strong>🌐 Web Version</strong></p>
+                    <p>Just replace user/repo with any GitHub repository:</p>
+                    <div class="code-block">
+                        <code id="web-example">{request.host_url}github.com/karpathy/nanoGPT</code>
+                        <button class="copy-btn" onclick="copyToClipboard('web-example')">📋 Copy</button>
+                    </div>
+                </div>
+                
+                <div class="usage-section">
+                    <p><strong>💻 CLI Version</strong></p>
+                    <p>Install once:</p>
+                    <div class="code-block">
+                        <code id="pip-install">pip install rendergit</code>
+                        <button class="copy-btn" onclick="copyToClipboard('pip-install')">📋 Copy</button>
+                    </div>
+                    <p>Then use anywhere:</p>
+                    <div class="code-block">
+                        <code id="cli-example">rendergit https://github.com/karpathy/nanoGPT</code>
+                        <button class="copy-btn" onclick="copyToClipboard('cli-example')">📋 Copy</button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -382,6 +440,40 @@ def index():
                 const path = url.replace(/^https?:\\/\\//, '');
                 window.location.href = '/' + path;
             }}
+        }}
+        
+        function copyToClipboard(elementId) {{
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {{
+                // Find the button that was clicked
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {{
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }}, 2000);
+            }}).catch(err => {{
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                
+                setTimeout(() => {{
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }}, 2000);
+            }});
         }}
         </script>
     </body>
