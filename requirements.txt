@@ -1,0 +1,4 @@
+flask==3.0.0
+pygments==2.17.2
+markdown==3.5.1
+gunicorn==21.2.0
