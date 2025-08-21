@@ -14,7 +14,7 @@ cd rendergit
 pip install -e .
 ```
 
-Now you can just `rendergit` any GitHub url e.g.:
+Now you can just `rendergit` any GitHub URL, e.g.:
 
 ```bash
 rendergit https://github.com/karpathy/nanoGPT
@@ -29,7 +29,7 @@ Once open, you can toggle between two views:
 - **👤 Human View**: Browse with syntax highlighting, sidebar navigation, visual goodies
 - **🤖 LLM View**: Copy the entire codebase as CXML text to paste into Claude, ChatGPT, etc.
 
-There's a few other smaller options, see the code.
+There are a few other smaller options; see the code.
 
 ## Features
 
