@@ -399,8 +399,7 @@ def index():
                 <div class="example-buttons">
                     <button class="example-btn" onclick="tryExample('https://github.com/karpathy/nanoGPT')">nanoGPT</button>
                     <button class="example-btn" onclick="tryExample('https://github.com/openai/whisper')">Whisper</button>
-                    <button class="example-btn" onclick="tryExample('https://github.com/ggerganov/llama.cpp')">llama.cpp</button>
-                    <button class="example-btn" onclick="tryExample('https://github.com/Significant-Gravitas/AutoGPT')">AutoGPT</button>
+                    <button class="example-btn" onclick="tryExample('https://github.com/ggml-org/llama.cpp')">llama.cpp</button>
                     <button class="example-btn" onclick="tryExample('https://github.com/AUTOMATIC1111/stable-diffusion-webui')">SD WebUI</button>
                 </div>
             </div>
