@@ -272,35 +272,6 @@ def index():
             button:hover {{
                 background: #2ea043;
             }}
-            .examples {{
-                text-align: center;
-                margin: 30px 0;
-                padding: 20px;
-                background: #161b22;
-                border-radius: 8px;
-            }}
-            .examples p {{
-                margin: 0 0 15px 0;
-                color: #8b949e;
-            }}
-            .example-buttons {{
-                display: flex;
-                flex-wrap: wrap;
-                gap: 10px;
-                justify-content: center;
-            }}
-            .example-btn {{
-                padding: 8px 16px;
-                background: #21262d;
-                border: 1px solid #30363d;
-                font-size: 14px;
-                transition: all 0.2s;
-            }}
-            .example-btn:hover {{
-                background: #30363d;
-                border-color: #58a6ff;
-                transform: translateY(-1px);
-            }}
             .cards {{
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -374,12 +345,6 @@ def index():
                 .cards {{
                     grid-template-columns: 1fr;
                 }}
-                .example-buttons {{
-                    flex-direction: column;
-                }}
-                .example-btn {{
-                    width: 100%;
-                }}
             }}
         </style>
     </head>
@@ -392,16 +357,6 @@ def index():
                 <input type="text" id="url" placeholder="https://github.com/user/repo" 
                        onkeypress="if(event.key==='Enter') go()">
                 <button onclick="go()">Render</button>
-            </div>
-            
-            <div class="examples">
-                <p>Try these examples:</p>
-                <div class="example-buttons">
-                    <button class="example-btn" onclick="tryExample('https://github.com/karpathy/nanoGPT')">nanoGPT</button>
-                    <button class="example-btn" onclick="tryExample('https://github.com/openai/whisper')">Whisper</button>
-                    <button class="example-btn" onclick="tryExample('https://github.com/ggml-org/llama.cpp')">llama.cpp</button>
-                    <button class="example-btn" onclick="tryExample('https://github.com/AUTOMATIC1111/stable-diffusion-webui')">SD WebUI</button>
-                </div>
             </div>
             
             <h2 style="margin-top: 40px; color: #58a6ff;">Recently Rendered</h2>
@@ -423,11 +378,6 @@ def index():
                 const path = url.replace(/^https?:\\/\\//, '');
                 window.location.href = '/' + path;
             }}
-        }}
-        
-        function tryExample(url) {{
-            document.getElementById('url').value = url;
-            go();
         }}
         </script>
     </body>
