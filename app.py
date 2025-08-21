@@ -74,6 +74,111 @@ def cleanup_old_cache():
     
     save_metadata(metadata)
 
+@app.route('/loading/<path:repo_path>')
+def loading_page(repo_path):
+    """Show loading page while repo is being processed"""
+    repo_name = repo_path.split('/')[-1]
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Loading {repo_name} - rendergit</title>
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: #0d1117;
+                color: #c9d1d9;
+                margin: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                padding: 20px;
+            }}
+            .loading-container {{
+                text-align: center;
+                max-width: 500px;
+            }}
+            h1 {{
+                color: #58a6ff;
+                margin-bottom: 20px;
+            }}
+            .repo-name {{
+                color: #58a6ff;
+                font-weight: bold;
+            }}
+            .spinner {{
+                width: 50px;
+                height: 50px;
+                margin: 30px auto;
+                border: 3px solid #30363d;
+                border-top: 3px solid #58a6ff;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }}
+            @keyframes spin {{
+                0% {{ transform: rotate(0deg); }}
+                100% {{ transform: rotate(360deg); }}
+            }}
+            .status {{
+                color: #8b949e;
+                margin: 20px 0;
+            }}
+            .steps {{
+                text-align: left;
+                display: inline-block;
+                margin: 20px 0;
+            }}
+            .step {{
+                padding: 8px 0;
+                color: #6e7681;
+            }}
+            .step.active {{
+                color: #58a6ff;
+            }}
+            .step.done {{
+                color: #3fb950;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="loading-container">
+            <h1>🚀 rendergit</h1>
+            <div class="spinner"></div>
+            <p>Processing <span class="repo-name">{repo_name}</span></p>
+            <div class="steps">
+                <div class="step active" id="step1">📥 Cloning repository...</div>
+                <div class="step" id="step2">📂 Collecting files...</div>
+                <div class="step" id="step3">🎨 Rendering HTML...</div>
+                <div class="step" id="step4">💾 Caching result...</div>
+            </div>
+            <p class="status">This may take a few moments for large repositories</p>
+        </div>
+        <script>
+            // Animate through steps
+            let currentStep = 1;
+            const totalSteps = 4;
+            
+            setInterval(() => {{
+                if (currentStep < totalSteps) {{
+                    document.getElementById('step' + currentStep).classList.remove('active');
+                    document.getElementById('step' + currentStep).classList.add('done');
+                    currentStep++;
+                    document.getElementById('step' + currentStep).classList.add('active');
+                }}
+            }}, 1500);
+            
+            // Actually load the content
+            setTimeout(() => {{
+                window.location.href = '/{repo_path}?process=true';
+            }}, 100);
+        </script>
+    </body>
+    </html>
+    '''
+
 @app.route('/')
 def index():
     """Show homepage with repo cards"""
@@ -88,10 +193,12 @@ def index():
     cards_html = ''
     for key, info in sorted_repos[:20]:  # Show last 20
         cards_html += f'''
-        <div class="card">
-            <h3><a href="/{info['path']}">{info['name']}</a></h3>
-            <p class="url">{info['url']}</p>
-        </div>
+        <a href="/{info['path']}" class="card-link">
+            <div class="card">
+                <h3>{info['name']}</h3>
+                <p class="url">{info['url']}</p>
+            </div>
+        </a>
         '''
     
     if not cards_html:
@@ -200,12 +307,17 @@ def index():
                 gap: 15px;
                 margin-top: 20px;
             }}
+            .card-link {{
+                text-decoration: none;
+                display: block;
+            }}
             .card {{
                 background: #161b22;
                 border: 1px solid #30363d;
                 border-radius: 8px;
                 padding: 15px;
                 transition: all 0.2s;
+                cursor: pointer;
             }}
             .card:hover {{
                 transform: translateY(-2px);
@@ -215,13 +327,7 @@ def index():
             .card h3 {{
                 margin: 0 0 8px 0;
                 font-size: 1.1rem;
-            }}
-            .card a {{
                 color: #58a6ff;
-                text-decoration: none;
-            }}
-            .card a:hover {{
-                text-decoration: underline;
             }}
             .url {{
                 color: #6e7681;
@@ -357,6 +463,10 @@ def render_repo(repo_path):
                 # Return cached content
                 with open(cache_file, 'r', encoding='utf-8') as f:
                     return f.read()
+        
+        # If not processing flag, show loading page first
+        if 'process' not in request.args:
+            return loading_page(repo_path)
         
         # Generate fresh content
         with tempfile.TemporaryDirectory() as tmpdir:
