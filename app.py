@@ -100,7 +100,10 @@ def index():
         '''
     
     if not cards_html:
-        cards_html = '<p class="empty">No repositories cached yet. Try <a href="/github.com/karpathy/nanoGPT">this example</a></p>'
+        cards_html = '''<div class="empty">
+            <p>No repositories rendered yet.</p>
+            <p>Try one of the examples above or enter your own GitHub URL!</p>
+        </div>'''
     
     return f'''
     <!DOCTYPE html>
@@ -110,32 +113,40 @@ def index():
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>rendergit</title>
         <style>
+            * {{
+                box-sizing: border-box;
+            }}
             body {{
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
                 background: #0d1117;
                 color: #c9d1d9;
                 margin: 0;
-                padding: 20px;
+                padding: 10px;
             }}
             .container {{
-                max-width: 1200px;
+                max-width: 900px;
                 margin: 0 auto;
             }}
             h1 {{
                 color: #58a6ff;
                 text-align: center;
                 margin-bottom: 10px;
+                font-size: clamp(1.5rem, 5vw, 2.5rem);
+            }}
+            h2 {{
+                font-size: clamp(1.2rem, 4vw, 1.5rem);
             }}
             .subtitle {{
                 text-align: center;
                 color: #8b949e;
                 margin-bottom: 30px;
+                font-size: clamp(0.9rem, 2.5vw, 1.1rem);
             }}
             .input-group {{
                 display: flex;
                 gap: 10px;
                 max-width: 600px;
-                margin: 0 auto 40px;
+                margin: 0 auto 20px;
             }}
             input {{
                 flex: 1;
@@ -154,21 +165,51 @@ def index():
                 border-radius: 6px;
                 cursor: pointer;
                 font-size: 16px;
+                white-space: nowrap;
             }}
             button:hover {{
                 background: #2ea043;
             }}
+            .examples {{
+                text-align: center;
+                margin: 30px 0;
+                padding: 20px;
+                background: #161b22;
+                border-radius: 8px;
+            }}
+            .examples p {{
+                margin: 0 0 15px 0;
+                color: #8b949e;
+            }}
+            .example-buttons {{
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+            }}
+            .example-btn {{
+                padding: 8px 16px;
+                background: #21262d;
+                border: 1px solid #30363d;
+                font-size: 14px;
+                transition: all 0.2s;
+            }}
+            .example-btn:hover {{
+                background: #30363d;
+                border-color: #58a6ff;
+                transform: translateY(-1px);
+            }}
             .cards {{
                 display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                gap: 20px;
-                margin-top: 40px;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 15px;
+                margin-top: 20px;
             }}
             .card {{
                 background: #161b22;
                 border: 1px solid #30363d;
                 border-radius: 8px;
-                padding: 20px;
+                padding: 15px;
                 transition: transform 0.2s;
             }}
             .card:hover {{
@@ -177,6 +218,7 @@ def index():
             }}
             .card h3 {{
                 margin: 0 0 10px 0;
+                font-size: 1.1rem;
             }}
             .card a {{
                 color: #58a6ff;
@@ -187,21 +229,25 @@ def index():
             }}
             .url {{
                 color: #8b949e;
-                font-size: 14px;
+                font-size: 12px;
                 margin: 5px 0;
                 word-break: break-all;
             }}
             .meta {{
                 display: flex;
-                gap: 20px;
+                flex-wrap: wrap;
+                gap: 15px;
                 margin-top: 10px;
-                font-size: 14px;
+                font-size: 13px;
                 color: #8b949e;
             }}
             .empty {{
                 text-align: center;
                 color: #8b949e;
-                margin: 60px 0;
+                margin: 40px 0;
+                padding: 40px 20px;
+                background: #161b22;
+                border-radius: 8px;
             }}
             .empty a {{
                 color: #58a6ff;
@@ -211,11 +257,33 @@ def index():
                 margin: 40px auto;
                 text-align: center;
                 color: #8b949e;
+                padding: 20px;
+                background: #161b22;
+                border-radius: 8px;
             }}
             code {{
-                background: #161b22;
-                padding: 2px 6px;
+                background: #0d1117;
+                padding: 4px 8px;
                 border-radius: 3px;
+                font-size: 0.9em;
+                word-break: break-all;
+            }}
+            @media (max-width: 640px) {{
+                .input-group {{
+                    flex-direction: column;
+                }}
+                button {{
+                    width: 100%;
+                }}
+                .cards {{
+                    grid-template-columns: 1fr;
+                }}
+                .example-buttons {{
+                    flex-direction: column;
+                }}
+                .example-btn {{
+                    width: 100%;
+                }}
             }}
         </style>
     </head>
@@ -230,6 +298,18 @@ def index():
                 <button onclick="go()">Render</button>
             </div>
             
+            <div class="examples">
+                <p>Try these examples:</p>
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="tryExample('https://github.com/karpathy/nanoGPT')">nanoGPT</button>
+                    <button class="example-btn" onclick="tryExample('https://github.com/openai/whisper')">Whisper</button>
+                    <button class="example-btn" onclick="tryExample('https://github.com/ggerganov/llama.cpp')">llama.cpp</button>
+                    <button class="example-btn" onclick="tryExample('https://github.com/Significant-Gravitas/AutoGPT')">AutoGPT</button>
+                    <button class="example-btn" onclick="tryExample('https://github.com/AUTOMATIC1111/stable-diffusion-webui')">SD WebUI</button>
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 40px; color: #58a6ff;">Recently Rendered</h2>
             <div class="cards">
                 {cards_html}
             </div>
@@ -248,6 +328,11 @@ def index():
                 const path = url.replace(/^https?:\\/\\//, '');
                 window.location.href = '/' + path;
             }}
+        }}
+        
+        function tryExample(url) {{
+            document.getElementById('url').value = url;
+            go();
         }}
         </script>
     </body>
@@ -273,7 +358,7 @@ def render_repo(repo_path):
         
         # Check if cached and not expired
         if cache_file.exists() and cache_key in metadata['repos']:
-            cache_info = metadata['repos'][cache_key]
+            cache_info = metadata['repos'][cache_key]   
             if time.time() - cache_info['timestamp'] < (CACHE_TTL_HOURS * 3600):
                 # Update access time
                 cache_info['last_accessed'] = time.time()
