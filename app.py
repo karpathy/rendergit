@@ -339,7 +339,7 @@ def index():
             .usage-label {{
                 color: #8b949e;
                 font-size: 14px;
-                min-width: 60px;
+                min-width: 40px;
             }}
             .code-block {{
                 flex: 1;
@@ -406,18 +406,18 @@ def index():
             
             <div class="info">
                 <div class="usage-row">
-                    <span class="usage-label">🌐 Web</span>
+                    <span class="usage-label">Web</span>
                     <div class="code-block">
-                        <code id="web-example">{request.host_url}github.com/user/repo</code>
+                        <code id="web-example">{request.host_url}github.com/karpathy/nanoGPT</code>
                         <button class="copy-btn" onclick="copyToClipboard('web-example')">📋</button>
                     </div>
                 </div>
                 
                 <div class="usage-row">
-                    <span class="usage-label">💻 CLI</span>
+                    <span class="usage-label">CLI</span>
                     <div class="code-block">
-                        <code id="pip-install">pip install rendergit</code>
-                        <button class="copy-btn" onclick="copyToClipboard('pip-install')">📋</button>
+                        <code id="cli-example">pip install rendergit && rendergit https://github.com/karpathy/nanoGPT</code>
+                        <button class="copy-btn" onclick="copyToClipboard('cli-example')">📋</button>
                     </div>
                 </div>
             </div>
