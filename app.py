@@ -87,15 +87,10 @@ def index():
     
     cards_html = ''
     for key, info in sorted_repos[:20]:  # Show last 20
-        time_ago = datetime.fromtimestamp(info['timestamp']).strftime('%Y-%m-%d %H:%M')
         cards_html += f'''
         <div class="card">
             <h3><a href="/{info['path']}">{info['name']}</a></h3>
             <p class="url">{info['url']}</p>
-            <p class="meta">
-                <span>⭐ {info.get('stars', 'N/A')}</span>
-                <span>📅 Cached: {time_ago}</span>
-            </p>
         </div>
         '''
     
@@ -210,14 +205,15 @@ def index():
                 border: 1px solid #30363d;
                 border-radius: 8px;
                 padding: 15px;
-                transition: transform 0.2s;
+                transition: all 0.2s;
             }}
             .card:hover {{
                 transform: translateY(-2px);
                 border-color: #58a6ff;
+                box-shadow: 0 4px 12px rgba(88, 166, 255, 0.1);
             }}
             .card h3 {{
-                margin: 0 0 10px 0;
+                margin: 0 0 8px 0;
                 font-size: 1.1rem;
             }}
             .card a {{
@@ -228,18 +224,12 @@ def index():
                 text-decoration: underline;
             }}
             .url {{
-                color: #8b949e;
-                font-size: 12px;
-                margin: 5px 0;
-                word-break: break-all;
-            }}
-            .meta {{
-                display: flex;
-                flex-wrap: wrap;
-                gap: 15px;
-                margin-top: 10px;
+                color: #6e7681;
                 font-size: 13px;
-                color: #8b949e;
+                margin: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }}
             .empty {{
                 text-align: center;
