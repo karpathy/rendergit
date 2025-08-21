@@ -2,14 +2,18 @@
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+py-modules = ["repo_to_single_page"]
+
 [project]
 name = "rendergit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Flatten a GitHub repo into a single static HTML page for fast skimming and Ctrl+F"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Andrej Karpathy"},
+    {name = "Eden Chan", email = "edenchan717@gmail.com"},
 ]
 dependencies = [
     "pygments",
@@ -32,5 +36,5 @@ classifiers = [
 rendergit = "repo_to_single_page:main"
 
 [project.urls]
-Homepage = "https://github.com/karpathy/rendergit"
-Repository = "https://github.com/karpathy/rendergit"
+Homepage = "https://github.com/eden-chan/rendergit"
+Repository = "https://github.com/eden-chan/rendergit"
