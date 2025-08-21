@@ -68,9 +68,16 @@ HTML = '''
     <div id="msg"></div>
     
     <div class="info">
+        <p><strong>Direct URL:</strong> <code id="example-url"></code></p>
         <p>Install locally: <code>pip install rendergit</code></p>
         <p>CLI usage: <code>rendergit https://github.com/user/repo</code></p>
     </div>
+    
+    <script>
+    // Show example URL
+    document.getElementById('example-url').textContent = 
+        window.location.origin + '/github.com/karpathy/nanoGPT';
+    </script>
     
     <script>
     async function process() {
@@ -115,6 +122,36 @@ HTML = '''
 @app.route('/')
 def index():
     return HTML
+
+@app.route('/<path:repo_path>')
+def render_repo(repo_path):
+    """Direct URL rendering: /github.com/user/repo"""
+    try:
+        # Construct GitHub URL from path
+        if not repo_path.startswith('github.com/'):
+            return f'Invalid path. Use format: {request.host_url}github.com/user/repo', 400
+        
+        repo_url = f'https://{repo_path}'
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Clone repo
+            repo_dir = os.path.join(tmpdir, 'repo')
+            git_clone(repo_url, repo_dir)
+            
+            # Get metadata
+            commit = git_head_commit(repo_dir)
+            
+            # Collect files
+            repo_path_obj = Path(repo_dir)
+            files = collect_files(repo_path_obj, MAX_DEFAULT_BYTES)
+            
+            # Generate HTML using original function
+            html_content = build_html(repo_url, repo_dir, commit, files)
+            
+            return html_content
+            
+    except Exception as e:
+        return f'<h1>Error</h1><p>{str(e)}</p><p>Usage: {request.host_url}github.com/user/repo</p>', 500
 
 @app.route('/process', methods=['POST'])
 def process():
