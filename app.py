@@ -148,7 +148,7 @@ def render_repo(repo_path):
             files = collect_files(repo_path_obj, MAX_DEFAULT_BYTES)
             
             # Generate HTML using original function
-            html_content = build_html(repo_url, repo_dir, commit, files)
+            html_content = build_html(repo_url, Path(repo_dir), commit, files)
             
             return html_content
             
@@ -176,7 +176,7 @@ def process():
             files = collect_files(repo_path, MAX_DEFAULT_BYTES)
             
             # Generate HTML using original function
-            html_content = build_html(repo_url, repo_dir, commit, files)
+            html_content = build_html(repo_url, Path(repo_dir), commit, files)
             
             # Write and send
             html_file = os.path.join(tmpdir, 'output.html')
