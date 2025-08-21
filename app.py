@@ -125,13 +125,15 @@ def index():
 
 @app.route('/<path:repo_path>')
 def render_repo(repo_path):
-    """Direct URL rendering: /github.com/user/repo"""
+    """Direct URL rendering: /github.com/user/repo or /https://github.com/user/repo"""
     try:
-        # Construct GitHub URL from path
-        if not repo_path.startswith('github.com/'):
+        # Handle different URL formats
+        if repo_path.startswith('https://github.com/') or repo_path.startswith('http://github.com/'):
+            repo_url = repo_path.replace('http://', 'https://')
+        elif repo_path.startswith('github.com/'):
+            repo_url = f'https://{repo_path}'
+        else:
             return f'Invalid path. Use format: {request.host_url}github.com/user/repo', 400
-        
-        repo_url = f'https://{repo_path}'
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # Clone repo
