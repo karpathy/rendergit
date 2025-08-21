@@ -11,8 +11,8 @@ from pathlib import Path
 
 # Import everything from the original CLI
 from repo_to_single_page import (
-    git_clone, git_head_commit, walk_files, tree_command,
-    render_html, MAX_DEFAULT_BYTES
+    git_clone, git_head_commit, collect_files, try_tree_command,
+    build_html, MAX_DEFAULT_BYTES, main
 )
 
 app = Flask(__name__)
@@ -132,14 +132,12 @@ def process():
             commit = git_head_commit(repo_dir)
             repo_name = repo_url.rstrip('/').split('/')[-1].replace('.git', '')
             
-            # Walk files
-            files = walk_files(repo_dir, MAX_DEFAULT_BYTES)
-            
-            # Get tree
-            tree_output = tree_command(repo_dir)
+            # Collect files
+            repo_path = Path(repo_dir)
+            files = collect_files(repo_path, MAX_DEFAULT_BYTES)
             
             # Generate HTML using original function
-            html_content = render_html(repo_url, repo_name, commit, files, tree_output)
+            html_content = build_html(repo_url, repo_dir, commit, files)
             
             # Write and send
             html_file = os.path.join(tmpdir, 'output.html')
