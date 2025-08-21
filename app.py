@@ -4,6 +4,7 @@ Flask web app for rendergit with caching and repo cards
 """
 
 import os
+import sys
 import json
 import time
 import hashlib
@@ -11,6 +12,9 @@ import tempfile
 from datetime import datetime, timedelta
 from flask import Flask, request, Response
 from pathlib import Path
+
+# Ensure current directory is in path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import from original CLI
 from repo_to_single_page import (
