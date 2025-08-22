@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rendergit"
 version = "0.1.0"
-description = "Flatten a GitHub repo into a single static HTML page for fast skimming and Ctrl+F"
+description = "Flatten a GitHub repo or local directory into a single static HTML page for fast skimming and Ctrl+F"
 readme = "README.md"
 license = "0BSD"
 authors = [

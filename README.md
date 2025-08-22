@@ -2,7 +2,7 @@
 
 > Just show me the code.
 
-Tired of clicking around complex file hierarchies of GitHub repos? Do you just want to see all of the code on a single page? Enter `rendergit`. Flatten any GitHub repository into a single, static HTML page with syntax highlighting, markdown rendering, and a clean sidebar navigation. Perfect for code review, exploration, and an instant Ctrl+F experience.
+Tired of clicking around complex file hierarchies of GitHub repos? Do you just want to see all of the code on a single page? Enter `rendergit`. Flatten any GitHub repository or local directory into a single, static HTML page with syntax highlighting, markdown rendering, and a clean sidebar navigation. Perfect for code review, exploration, and an instant Ctrl+F experience.
 
 ## Basic usage
 
@@ -10,7 +10,8 @@ Install and use easily with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv tool install git+https://github.com/karpathy/rendergit
-rendergit https://github.com/karpathy/nanogpt
+rendergit https://github.com/karpathy/nanogpt    # Remote repository
+rendergit /path/to/local/repo                   # Local repository
 ```
 
 Alternatively, more manual pip install example:
@@ -19,11 +20,12 @@ Alternatively, more manual pip install example:
 git clone https://github.com/karpathy/rendergit
 cd rendergit
 pip install -e .
-rendergit https://github.com/karpathy/nanoGPT
+rendergit https://github.com/karpathy/nanoGPT   # Remote repository
+rendergit /path/to/local/repo                   # Local repository
 ```
 
 The code will:
-1. Clone the repo to a temporary directory
+1. Clone the repo (if URL) or use the local directory (if path)
 2. Render its source code into a single static temporary HTML file
 3. Automatically open the file in your browser
 
@@ -35,6 +37,7 @@ There's a few other smaller options, see the code.
 
 ## Features
 
+- **Local & Remote Repository Support** - works with GitHub URLs and local directories
 - **Dual view modes** - toggle between Human and LLM views
   - **👤 Human View**: Pretty interface with syntax highlighting and navigation
   - **🤖 LLM View**: Raw CXML text format - perfect for copying to Claude/ChatGPT for code analysis
