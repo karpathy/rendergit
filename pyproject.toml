@@ -15,6 +15,7 @@ requires-python = ">=3.10"
 dependencies = [
     "markdown>=3.8.2",
     "pygments>=2.19.2",
+    "mcp>=1.0.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -27,7 +28,8 @@ classifiers = [
 ]
 
 [project.scripts]
-rendergit = "rendergit:main"
+rendergit = "rendergit_package.rendergit:main"
+rendergit-mcp = "rendergit_package.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/karpathy/rendergit"
