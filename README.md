@@ -33,6 +33,12 @@ Once open, you can toggle between two views:
 
 There's a few other smaller options, see the code.
 
+## MCP Server
+
+RenderGit also includes an MCP (Model Context Protocol) server that allows you to flatten GitHub repositories and feed them directly into LLMs through compatible tools like Claude Desktop.
+
+See [MCP_SERVER.md](MCP_SERVER.md) for detailed instructions on setting up and using the MCP server.
+
 ## Features
 
 - **Dual view modes** - toggle between Human and LLM views
@@ -45,6 +51,7 @@ There's a few other smaller options, see the code.
 - **Sidebar navigation** with file links and sizes
 - **Responsive design** that works on mobile
 - **Search-friendly** - use Ctrl+F to find anything across all files
+- **MCP Server** - integrate directly with Claude Desktop and other MCP-compatible tools
 
 ## Contributing
 
