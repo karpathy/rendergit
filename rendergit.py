@@ -287,13 +287,25 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
   .counts {{ margin-top: 0.25rem; color: #333; }}
   .muted {{ color: #777; font-weight: normal; font-size: 0.9em; }}
 
-  /* Layout with sidebar */
-  .page {{ display: grid; grid-template-columns: 320px minmax(0,1fr); gap: 0; }}
+    /* Layout with sidebar */
+    :root {{ --sidebar-width: 320px; }}
+    .page {{ display: grid; grid-template-columns: var(--sidebar-width) 6px minmax(0,1fr); gap: 0; }}
   #sidebar {{
     position: sticky; top: 0; align-self: start;
     height: 100vh; overflow: auto;
     border-right: 1px solid #eee; background: #fafbfc;
   }}
+    #resizer {{
+        width: 6px;
+        cursor: col-resize;
+        background: linear-gradient(to right, transparent 0, #e8eaed 50%, transparent 100%);
+        user-select: none;
+        touch-action: none;
+    }}
+    #resizer:hover,
+    #resizer.active {{
+        background: linear-gradient(to right, transparent 0, #c5c9ce 50%, transparent 100%);
+    }}
   #sidebar .sidebar-inner {{ padding: 0.75rem; }}
   #sidebar h2 {{ margin: 0 0 0.5rem 0; font-size: 1rem; }}
 
@@ -317,6 +329,12 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
   /* Hide duplicate top TOC on wide screens */
   .toc-top {{ display: block; }}
   @media (min-width: 1000px) {{ .toc-top {{ display: none; }} }}
+
+    @media (max-width: 999px) {{
+        .page {{ grid-template-columns: minmax(0,1fr); }}
+        #sidebar {{ position: static; height: auto; border-right: 0; border-bottom: 1px solid #eee; }}
+        #resizer {{ display: none; }}
+    }}
 
   :target {{ scroll-margin-top: 8px; }}
 
@@ -377,6 +395,8 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
         {toc_html}
       </ul>
   </div></nav>
+
+    <div id="resizer" aria-hidden="true"></div>
 
   <main class="container">
 
@@ -449,6 +469,50 @@ function showLLMView() {{
     textArea.select();
   }}, 100);
 }}
+
+(function initResizableSidebar() {{
+    const page = document.querySelector('.page');
+    const resizer = document.getElementById('resizer');
+    if (!page || !resizer) return;
+
+    const storageKey = 'rendergit.sidebar.width';
+    const minWidth = 220;
+    const maxWidth = 700;
+
+    const saved = Number(localStorage.getItem(storageKey));
+    if (Number.isFinite(saved) && saved >= minWidth && saved <= maxWidth) {{
+        document.documentElement.style.setProperty('--sidebar-width', `${{saved}}px`);
+    }}
+
+    const isDesktop = () => window.matchMedia('(min-width: 1000px)').matches;
+    let dragging = false;
+
+    function onMove(e) {{
+        if (!dragging || !isDesktop()) return;
+        const x = e.clientX;
+        const next = Math.max(minWidth, Math.min(maxWidth, x));
+        document.documentElement.style.setProperty('--sidebar-width', `${{next}}px`);
+    }}
+
+    function onUp() {{
+        if (!dragging) return;
+        dragging = false;
+        resizer.classList.remove('active');
+        const width = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width').trim();
+        localStorage.setItem(storageKey, String(parseInt(width, 10)));
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+    }}
+
+    resizer.addEventListener('mousedown', (e) => {{
+        if (!isDesktop()) return;
+        e.preventDefault();
+        dragging = true;
+        resizer.classList.add('active');
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    }});
+}})();
 </script>
 </body>
 </html>
