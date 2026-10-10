@@ -282,13 +282,13 @@ def build_html(repo_url: str, repo_dir: pathlib.Path, head_commit: str, infos: L
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
     margin: 0; padding: 0; line-height: 1.45;
   }}
-  .container {{ max-width: 1100px; margin: 0 auto; padding: 0 1rem; }}
+  .container {{ box-sizing: border-box; max-width: 100%; margin: 0 auto; padding: 0 1rem; }}
   .meta small {{ color: #666; }}
   .counts {{ margin-top: 0.25rem; color: #333; }}
   .muted {{ color: #777; font-weight: normal; font-size: 0.9em; }}
 
   /* Layout with sidebar */
-  .page {{ display: grid; grid-template-columns: 320px minmax(0,1fr); gap: 0; }}
+  .page {{ display: grid; grid-template-columns: 1fr minmax(0, 3fr); gap: 0; }}
   #sidebar {{
     position: sticky; top: 0; align-self: start;
     height: 100vh; overflow: auto;
